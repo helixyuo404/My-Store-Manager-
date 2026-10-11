@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER-KARYANA // Advanced POS & Store Vault</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- CryptoJS for Encrypted Backup Export/Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            black: '#070a12',
+                            card: '#0e1526',
+                            border: '#1e293b',
+                            neonCyan: '#00f0ff',
+                            neonPink: '#ff0055',
+                            neonGreen: '#00ff66',
+                            neonPurple: '#a855f7',
+                            neonYellow: '#ffea00'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #050811;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glow-cyan { text-shadow: 0 0 10px rgba(0, 240, 255, 0.6); }
+        .glow-pink { text-shadow: 0 0 10px rgba(255, 0, 85, 0.6); }
+        .glow-green { text-shadow: 0 0 10px rgba(0, 255, 102, 0.6); }
+        .box-glow-cyan { box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+        .box-glow-purple { box-shadow: 0 0 15px rgba(168, 85, 247, 0.25); }
+        .border-glow-cyan { border-color: rgba(0, 240, 255, 0.5); }
+        
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #070a12; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f0ff; }
+        
+        .receipt-paper {
+            background-color: #fcfbf7;
+            color: #111;
+            font-family: 'JetBrains Mono', monospace;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 0);
+            background-size: 8px 8px;
+        }
+        body.light-mode { background:#f1f5f9 !important; color:#0f172a !important; }
+        body.light-mode #top-navbar, body.light-mode #sidebar, body.light-mode .bg-cyber-card { background:#ffffff !important; color:#0f172a !important; }
+        body.light-mode .bg-slate-950, body.light-mode .bg-slate-900, body.light-mode .bg-slate-900\/90 { background:#e2e8f0 !important; color:#0f172a !important; }
+        body.light-mode .text-slate-100, body.light-mode .text-slate-200, body.light-mode .text-slate-300 { color:#1e293b !important; }
+        body.light-mode .border-slate-800, body.light-mode .border-slate-700 { border-color:#cbd5e1 !important; }
+        body.light-mode input, body.light-mode select { color:#0f172a !important; }
+    </style>
+</head>
+<body class="bg-cyber-black text-slate-100 min-h-screen flex flex-col selection:bg-cyber-neonCyan selection:text-black">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app" class="flex flex-col min-h-screen relative">
+        
+        <!-- HEADER TOP NAVIGATION -->
+        <header id="top-navbar" class="bg-cyber-card border-b border-slate-800 sticky top-0 z-30 px-4 py-3 flex items-center justify-between shadow-xl">
+            <div class="flex items-center gap-4">
+                <!-- Hamburger 3-Lines Button -->
+                <button id="menu-toggle-btn" onclick="toggleSidebar()" class="p-2.5 rounded-lg bg-slate-900 border border-slate-700 hover:border-cyber-neonCyan hover:text-cyber-neonCyan transition-all text-slate-200 focus:outline-none">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-cyber-neonCyan text-2xl animate-pulse"></i>
+                    <span class="font-bold text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-neonCyan via-teal-300 to-cyber-neonGreen">
+                        CYBER<span class="text-white">POS</span>
+                    </span>
+                    <span class="hidden md:inline-block text-xs bg-cyan-950 text-cyber-neonCyan border border-cyan-800 px-2 py-0.5 rounded-full font-mono">
+                        v2.6 KARYANA
+                    </span>
+                </div>
+            </div>
+
+            <!-- Header Quick Stats & Profile Pill -->
+            <div class="flex items-center gap-3">
+                <!-- Vault Quick Badge -->
+                <div class="hidden sm:flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 px-3 py-1.5 rounded-lg font-mono text-xs">
+                    <i class="fa-solid fa-vault text-cyber-neonYellow"></i>
+                    <span class="text-slate-400">Vault:</span>
+                    <span id="nav-vault-balance" class="text-cyber-neonGreen font-bold">Rs. 0.00</span>
+                </div>
+
+                <!-- User Profile Quick Toggle -->
+                <button onclick="switchTab('profile')" class="flex items-center gap-2 bg-slate-900 border border-slate-700 hover:border-cyber-neonPurple px-3 py-1.5 rounded-lg text-xs font-mono transition">
+                    <div class="w-6 h-6 rounded-full bg-cyber-neonPurple/20 text-cyber-neonPurple border border-cyber-neonPurple flex items-center justify-center font-bold">
+                        <span id="nav-user-avatar">U</span>
+                    </div>
+                    <span id="nav-username" class="hidden md:inline font-semibold text-slate-200">Owner</span>
+                </button>
+
+                <button onclick="toggleTheme()" title="Switch light/dark mode" class="p-2 bg-slate-900 text-amber-300 border border-slate-700 rounded-lg text-xs"><i id="theme-icon" class="fa-solid fa-sun"></i></button>
+
+            </div>
+        </header>
+
+        <!-- SLIDE-OUT SIDEBAR DRAWER (3-LINES MENU) -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+        
+        <aside id="sidebar" class="fixed top-0 left-0 bottom-0 w-72 bg-slate-950 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between">
+            <div>
+                <!-- Sidebar Header -->
+                <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-store text-cyber-neonCyan text-xl"></i>
+                        <div>
+                            <h2 id="sidebar-shop-name" class="font-bold text-slate-100 text-sm leading-tight truncate">My Karyana Store</h2>
+                            <p class="text-[10px] text-slate-400 font-mono">Store OS Console</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white text-lg p-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="p-4 space-y-1.5 font-medium text-sm">
+                    <button onclick="switchTab('pos')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-cyber-neonCyan transition active-nav" data-tab="pos">
+                        <i class="fa-solid fa-cash-register w-5 text-center text-cyber-neonCyan"></i> Smart POS Terminal
+                    </button>
+                    <button onclick="switchTab('khata')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-cyber-neonPink transition" data-tab="khata">
+                        <i class="fa-solid fa-book-bookmark w-5 text-center text-cyber-neonPink"></i> Customer Khata (Credit)
+                    </button>
+                    <button onclick="switchTab('inventory')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-cyber-neonGreen transition" data-tab="inventory">
+                        <i class="fa-solid fa-boxes-stacked w-5 text-center text-cyber-neonGreen"></i> Products & Inventory
+                    </button>
+                    <button onclick="switchTab('categories')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-amber-400 transition" data-tab="categories">
+                        <i class="fa-solid fa-layer-group w-5 text-center text-amber-400"></i> Categories Manager
+                    </button>
+                    <button onclick="switchTab('vault')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-cyber-neonYellow transition" data-tab="vault">
+                        <i class="fa-solid fa-vault w-5 text-center text-cyber-neonYellow"></i> Main Vault Balance
+                    </button>
+                    <button onclick="switchTab('transactions')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-sky-400 transition" data-tab="transactions">
+                        <i class="fa-solid fa-receipt w-5 text-center text-sky-400"></i> Transaction Logs
+                    </button>
+                    <button onclick="switchTab('analytics')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-cyber-neonPurple transition" data-tab="analytics">
+                        <i class="fa-solid fa-chart-line w-5 text-center text-cyber-neonPurple"></i> Store Analytics
+                    </button>
+                    <button onclick="switchTab('expenses')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-rose-300 transition" data-tab="expenses"><i class="fa-solid fa-money-bill-transfer w-5 text-center text-rose-300"></i> Expenses Record</button>
+                    <button onclick="switchTab('profile')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-teal-300 transition" data-tab="profile">
+                        <i class="fa-solid fa-user-gear w-5 text-center text-teal-300"></i> Owner Profile
+                    </button>
+                    <button onclick="switchTab('backup')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-indigo-400 transition" data-tab="backup">
+                        <i class="fa-solid fa-shield-halved w-5 text-center text-indigo-400"></i> Data Backup & Import
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/30 font-mono text-xs text-slate-500">
+                <div class="flex justify-between items-center mb-1">
+                    <span>STATUS:</span>
+                    <span class="text-cyber-neonGreen flex items-center gap-1"><i class="fa-solid fa-circle text-[8px] animate-ping"></i> ONLINE</span>
+                </div>
+                <div>Local browser storage</div>
+                <button onclick="switchTab('profile'); toggleSidebarIfOpen();" class="mt-3 w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300"><i class="fa-solid fa-user mr-2"></i>Profile</button>
+                <button onclick="logout()" class="mt-1 w-full text-left px-3 py-2 rounded-lg bg-red-950/40 text-red-300 hover:bg-red-900"><i class="fa-solid fa-power-off mr-2"></i>Log out</button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 p-3 md:p-6 overflow-y-auto max-w-7xl w-full mx-auto">
+
+            <!-- TAB 1: SMART POS TERMINAL -->
+            <section id="tab-pos" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- LEFT 7 COLS: Catalog & Search -->
+                    <div class="lg:col-span-7 flex flex-col gap-4">
+                        <!-- Search & Category Filters -->
+                        <div class="bg-cyber-card border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row gap-3">
+                            <div class="relative flex-1">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-slate-500"></i>
+                                <input type="text" id="pos-search" oninput="renderPOSCatalog()" placeholder="Search product name or scan barcode..." class="w-full bg-slate-950 border border-slate-700 focus:border-cyber-neonCyan rounded-xl pl-10 pr-4 py-2.5 text-slate-200 placeholder-slate-500 outline-none text-sm font-mono">
+                            </div>
+                            <select id="pos-category-filter" onchange="renderPOSCatalog()" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-cyber-neonCyan font-mono">
+                                <option value="ALL">All Categories</option>
+                            </select>
+                        </div>
+
+                        <!-- Products Grid -->
+                        <div id="pos-catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[620px] overflow-y-auto pr-1">
+                            <!-- Dynamic Product Cards Injected Here -->
+                        </div>
+                    </div>
+
+                    <!-- RIGHT 5 COLS: Cart & Quick Weight/Amount Calculator -->
+                    <div class="lg:col-span-5 bg-cyber-card border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-2xl">
+                        <div>
+                            <!-- Cart Header -->
+                            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                                <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2">
+                                    <i class="fa-solid fa-cart-shopping text-cyber-neonCyan"></i>
+                                    Active Billing Cart
+                                </h2>
+                                <button onclick="clearCart()" class="text-xs text-red-400 hover:text-red-300 font-mono flex items-center gap-1">
+                                    <i class="fa-solid fa-trash-can"></i> Clear
+                                </button>
+                            </div>
+
+                            <!-- Cart Items List -->
+                            <div id="cart-items-container" class="my-4 max-h-[280px] overflow-y-auto divide-y divide-slate-800/60 pr-1">
+                                <!-- Cart Items Dynamically Injected -->
+                            </div>
+                        </div>
+
+                        <!-- Billing & Checkout Options -->
+                        <div class="border-t border-slate-800 pt-4 space-y-3 bg-slate-950/60 p-4 rounded-xl">
+                            <div class="space-y-1 font-mono text-sm">
+                                <div class="flex justify-between text-slate-400">
+                                    <span>Subtotal:</span>
+                                    <span id="cart-subtotal">Rs. 0.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-400">
+                                    <span>Tax (0%):</span>
+                                    <span>Rs. 0.00</span>
+                                </div>
+                                <div class="flex justify-between text-lg font-bold text-cyber-neonGreen pt-2 border-t border-slate-800">
+                                    <span>Grand Total:</span>
+                                    <span id="cart-grand-total">Rs. 0.00</span>
+                                </div>
+                            </div>
+
+                            <!-- Payment Options & Checkout -->
+                            <div class="pt-2 space-y-2">
+                                <label class="block text-xs font-mono text-slate-400">Payment Mode:</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button id="pay-mode-cash" onclick="setPaymentMode('CASH')" class="pay-mode-btn py-2 text-xs font-semibold rounded-lg border border-cyber-neonGreen bg-cyber-neonGreen/10 text-cyber-neonGreen flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-money-bill-wave"></i> Vault Cash
+                                    </button>
+                                    <button id="pay-mode-khata" onclick="setPaymentMode('KHATA')" class="pay-mode-btn py-2 text-xs font-semibold rounded-lg border border-slate-700 bg-slate-900 text-slate-400 hover:border-cyber-neonPink flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-book"></i> Customer Khata
+                                    </button>
+                                </div>
+
+                                <!-- Khata Customer Selector (Visible when KHATA selected) -->
+                                <div id="khata-customer-select-box" class="hidden pt-1">
+                                    <select id="cart-customer-select" class="w-full bg-slate-900 border border-cyber-neonPink rounded-lg p-2 text-xs text-slate-200 outline-none">
+                                        <!-- Dynamic Khata Customers -->
+                                    </select>
+                                </div>
+
+                                <!-- Complete Sale Button -->
+                                <button onclick="checkoutSale()" class="w-full mt-3 py-3 bg-gradient-to-r from-cyber-neonCyan to-teal-400 text-slate-950 font-extrabold rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-check-double text-base"></i> COMPLETE SALE & PRINT RECEIPT
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: CUSTOMER KHATA (CREDIT LEDGER) -->
+            <section id="tab-khata" class="tab-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Customer List Column -->
+                    <div class="lg:col-span-4 bg-cyber-card border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-800">
+                                <h2 class="font-bold text-slate-100 flex items-center gap-2">
+                                    <i class="fa-solid fa-users text-cyber-neonPink"></i> Khata Directory
+                                </h2>
+                                <button onclick="openAddCustomerModal()" class="px-3 py-1 bg-cyber-neonPink/20 text-cyber-neonPink border border-cyber-neonPink hover:bg-cyber-neonPink hover:text-black font-semibold text-xs rounded-lg transition">
+                                    + New Customer
+                                </button>
+                            </div>
+                            <!-- Search Customer -->
+                            <input type="text" id="khata-search" oninput="renderKhataCustomers()" placeholder="Search customer name or phone..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 mb-3 outline-none focus:border-cyber-neonPink font-mono">
+                            
+                            <!-- Customer Cards Container -->
+                            <div id="khata-customers-list" class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                                <!-- Dynamic List -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Customer Ledger Details -->
+                    <div class="lg:col-span-8 bg-cyber-card border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                        <div id="khata-ledger-view">
+                            <div class="text-center text-slate-500 py-12 font-mono">
+                                <i class="fa-solid fa-address-book text-4xl mb-3 text-slate-700"></i>
+                                <p>Select a customer from the directory to view complete credit ledger history and make payments.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- TAB 3: PRODUCTS & INVENTORY MANAGEMENT -->
+            <section id="tab-inventory" class="tab-content hidden">
+                <div class="bg-cyber-card border border-slate-800 rounded-2xl p-5 space-y-5">
+                    
+                    <!-- Inventory Controls Header -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-800">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-boxes-stacked text-cyber-neonGreen"></i> Inventory Master Database
+                            </h2>
+                            <p class="text-xs text-slate-400 font-mono">Manage product details, pricing, stock levels and custom weight/unit restocking.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="openProductModal()" class="px-4 py-2 bg-cyber-neonGreen text-slate-950 font-bold text-xs rounded-xl shadow hover:brightness-110 transition flex items-center gap-2">
+                                <i class="fa-solid fa-plus"></i> Add New Product
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filters -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="inventory-search" oninput="renderInventoryTable()" placeholder="Search product by name, ID or barcode..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyber-neonGreen font-mono">
+                        <select id="inventory-cat-filter" onchange="renderInventoryTable()" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-300 outline-none font-mono">
+                            <option value="ALL">All Categories</option>
+                        </select>
+                    </div>
+
+                    <!-- Inventory Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left font-mono text-xs">
+                            <thead class="bg-slate-900/80 text-slate-400 uppercase border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Product Name</th>
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3">Type</th>
+                                    <th class="p-3">Cost Price</th>
+                                    <th class="p-3">Sell Price</th>
+                                    <th class="p-3">Margin</th>
+                                    <th class="p-3">Current Stock</th>
+                                    <th class="p-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body" class="divide-y divide-slate-800/60">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- TAB 4: CATEGORY MANAGER -->
+            <section id="tab-categories" class="tab-content hidden">
+                <div class="max-w-3xl mx-auto bg-cyber-card border border-slate-800 rounded-2xl p-5 space-y-5">
+                    <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-layer-group text-amber-400"></i> Category Management
+                            </h2>
+                            <p class="text-xs text-slate-400 font-mono">Organize store catalog items into customizable groups.</p>
+                        </div>
+                        <button onclick="openCategoryModal()" class="px-3 py-2 bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow hover:brightness-110 transition flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Add Category
+                        </button>
+                    </div>
+
+                    <div id="categories-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Dynamic Category Cards -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: MAIN VAULT BALANCE -->
+            <section id="tab-vault" class="tab-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Vault Overview & Controls -->
+                    <div class="lg:col-span-5 bg-cyber-card border border-slate-800 rounded-2xl p-6 space-y-6">
+                        <div class="border-b border-slate-800 pb-4">
+                            <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Core Store Cash Reserve</span>
+                            <h2 class="text-2xl font-bold text-slate-100 flex items-center gap-2 mt-1">
+                                <i class="fa-solid fa-vault text-cyber-neonYellow"></i> Main Store Vault
+                            </h2>
+                        </div>
+
+                        <!-- Current Balance Display Card -->
+                        <div class="bg-gradient-to-br from-slate-900 to-slate-950 border border-amber-500/30 p-6 rounded-2xl text-center shadow-xl box-glow-purple">
+                            <p class="text-xs text-slate-400 font-mono mb-1">REAL-TIME LIQUIDITY BALANCE</p>
+                            <h1 id="vault-display-balance" class="text-4xl font-extrabold text-cyber-neonGreen font-mono glow-green">
+                                Rs. 0.00
+                            </h1>
+                            <p class="text-[10px] text-slate-500 font-mono mt-2">Auto-updates on POS sales, restocking & ledger payouts</p>
+                        </div>
+
+                        <!-- Manual Deposit / Withdrawal Box -->
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                            <h3 class="text-xs font-mono text-slate-300 font-bold uppercase">Manual Vault Entry</h3>
+                            <input type="number" id="vault-input-amount" placeholder="Enter amount (Rs.)..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none font-mono">
+                            <input type="text" id="vault-input-reason" placeholder="Reason (e.g. Owner Cash Deposit, Utility Expense)..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 outline-none font-mono">
+                            
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <button onclick="adjustVault('DEPOSIT')" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition font-mono">
+                                    + DEPOSIT CASH
+                                </button>
+                                <button onclick="adjustVault('WITHDRAW')" class="py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg transition font-mono">
+                                    - WITHDRAW CASH
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vault History Logs -->
+                    <div class="lg:col-span-7 bg-cyber-card border border-slate-800 rounded-2xl p-5">
+                        <h3 class="font-bold text-slate-100 pb-3 border-b border-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-cyber-neonYellow"></i> Vault Transaction Audit Log
+                        </h3>
+                        <div class="overflow-y-auto max-h-[500px] pr-1">
+                            <table class="w-full text-left font-mono text-xs">
+                                <thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                                    <tr>
+                                        <th class="p-2.5">TX ID</th>
+                                        <th class="p-2.5">Type</th>
+                                        <th class="p-2.5">Description</th>
+                                        <th class="p-2.5 text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vault-logs-body" class="divide-y divide-slate-800/60">
+                                    <!-- Dynamic Vault Logs -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- TAB 6: TRANSACTIONS LOGS & DIGITAL RECEIPTS -->
+            <section id="tab-transactions" class="tab-content hidden">
+                <div class="bg-cyber-card border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-receipt text-sky-400"></i> Master Sales & Credit Audit Log
+                            </h2>
+                            <p class="text-xs text-slate-400 font-mono">Every transaction contains a cryptographic unique TX ID.</p>
+                        </div>
+                    </div>
+
+                    <!-- Filter -->
+                    <input type="text" id="tx-search" oninput="renderTransactionsTable()" placeholder="Search by Unique TX ID or Customer Name..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 outline-none font-mono">
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left font-mono text-xs">
+                            <thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">TX ID</th>
+                                    <th class="p-3">Date & Time</th>
+                                    <th class="p-3">Mode</th>
+                                    <th class="p-3">Total Amount</th>
+                                    <th class="p-3">Profit Margin</th>
+                                    <th class="p-3 text-right">Digital Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table-body" class="divide-y divide-slate-800/60">
+                                <!-- Dynamic TX Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 7: STORE ANALYTICS -->
+            <section id="tab-analytics" class="tab-content hidden">
+                <div class="space-y-6">
+                    <!-- Top Metric Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-cyber-card border border-slate-800 p-4 rounded-2xl">
+                            <span class="text-xs font-mono text-slate-400">TOTAL GROSS REVENUE</span>
+                            <p id="analytics-gross-revenue" class="text-2xl font-bold text-cyber-neonCyan font-mono mt-1">Rs. 0.00</p>
+                        </div>
+                        <div class="bg-cyber-card border border-slate-800 p-4 rounded-2xl">
+                            <span class="text-xs font-mono text-slate-400">TOTAL NET PROFIT</span>
+                            <p id="analytics-net-profit" class="text-2xl font-bold text-cyber-neonGreen font-mono mt-1">Rs. 0.00</p>
+                        </div>
+                        <div class="bg-cyber-card border border-slate-800 p-4 rounded-2xl">
+                            <span class="text-xs font-mono text-slate-400">TOTAL KHATA OUTSTANDING</span>
+                            <p id="analytics-khata-outstanding" class="text-2xl font-bold text-cyber-neonPink font-mono mt-1">Rs. 0.00</p>
+                        </div>
+                        <div class="bg-cyber-card border border-slate-800 p-4 rounded-2xl">
+                            <span class="text-xs font-mono text-slate-400">TOTAL SALES COUNT</span>
+                            <p id="analytics-sales-count" class="text-2xl font-bold text-cyber-neonPurple font-mono mt-1">0 Sales</p>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-cyber-card border border-slate-800 p-5 rounded-2xl">
+                            <h3 class="font-bold text-slate-200 mb-4 text-sm font-mono">Category Revenue Breakdown</h3>
+                            <div class="h-64">
+                                <canvas id="chart-category"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-cyber-card border border-slate-800 p-5 rounded-2xl">
+                            <h3 class="font-bold text-slate-200 mb-4 text-sm font-mono">Payment Mode Share</h3>
+                            <div class="h-64">
+                                <canvas id="chart-payments"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 8: OWNER PROFILE MANAGEMENT -->
+            <section id="tab-profile" class="tab-content hidden">
+                <div class="max-w-2xl mx-auto bg-cyber-card border border-slate-800 rounded-2xl p-6 space-y-6">
+                    <div class="border-b border-slate-800 pb-4">
+                        <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-user-gear text-teal-300"></i> Store Owner Profile Settings
+                        </h2>
+                        <p class="text-xs text-slate-400 font-mono">Update signup credentials, shop name and security credentials.</p>
+                    </div>
+
+                    <div class="flex items-center gap-4"><img id="profile-picture-preview" alt="Profile picture" class="w-20 h-20 rounded-full object-cover border border-slate-600" style="display:none"><div><label class="block text-slate-400 mb-2">Profile Picture</label><input id="profile-picture-input" type="file" accept="image/*" onchange="handleProfilePicture(event)" class="block w-full text-xs text-slate-400"><button type="button" onclick="removeProfilePicture()" class="mt-2 text-red-400">Remove picture</button></div></div>
+                    <form onsubmit="saveProfileChanges(event)" class="space-y-4 font-mono text-xs">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Username / Owner Name</label>
+                            <input type="text" id="profile-username" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-teal-300">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Email Address</label>
+                            <input type="email" id="profile-email" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-teal-300">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Shop / Karyana Name</label>
+                            <input type="text" id="profile-shopname" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-teal-300">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Phone Number</label>
+                            <input type="text" id="profile-phone" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-teal-300">
+                        </div>
+
+                        <!-- Password Update -->
+                        <div class="pt-2 border-t border-slate-800 space-y-3">
+                            <label class="block text-cyber-neonYellow font-bold">Change Password (Strict Validation)</label>
+                            <input type="password" id="profile-new-password" placeholder="Leave empty if not changing password..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-cyber-neonYellow">
+                            <p class="text-[10px] text-slate-500">Must be at least 8 digits, containing A-Z, a-z, 0-9 & symbol (!@#$%^&*).</p>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 bg-teal-400 text-slate-950 font-bold rounded-xl shadow hover:brightness-110 transition">
+                            SAVE PROFILE UPDATES
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 9: DATA ENCRYPTION & BACKUP -->
+            <section id="tab-backup" class="tab-content hidden">
+                <div class="max-w-2xl mx-auto bg-cyber-card border border-slate-800 rounded-2xl p-6 space-y-6">
+                    <div class="border-b border-slate-800 pb-4">
+                        <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-indigo-400"></i> Encrypted Data Vault Backup
+                        </h2>
+                        <p class="text-xs text-slate-400 font-mono">All data is encrypted using AES with your account secret key.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Export -->
+                        <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                            <h3 class="font-bold text-slate-200 text-sm">Export Encrypted Store Data</h3>
+                            <p class="text-xs text-slate-400">Downloads a secure `.json` file containing products, transactions, vault balance, and Khata database.</p>
+                            <button onclick="exportEncryptedBackup()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition font-mono flex items-center gap-2">
+                                <i class="fa-solid fa-download"></i> DOWNLOAD ENCRYPTED BACKUP
+                            </button>
+                        </div>
+
+                        <!-- Import -->
+                        <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                            <h3 class="font-bold text-slate-200 text-sm">Import & Restore Store Backup</h3>
+                            <p class="text-xs text-slate-400">Select an encrypted backup file to restore complete store data state.</p>
+                            <input type="file" id="backup-file-input" accept=".json" class="block w-full text-xs text-slate-400 border border-slate-800 rounded-lg cursor-pointer bg-slate-900 p-2">
+                            <button onclick="importEncryptedBackup()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition font-mono flex items-center gap-2">
+                                <i class="fa-solid fa-upload"></i> IMPORT & DECRYPT BACKUP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-expenses" class="tab-content hidden"><div class="max-w-3xl mx-auto bg-cyber-card border border-slate-800 rounded-2xl p-5 space-y-4"><h2 class="text-xl font-bold">Expenses Record</h2><p class="text-xs text-slate-400">Record an amount and its reason. Expenses reduce the Main Vault balance.</p><div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><input id="expense-amount" type="number" min="0.01" step="0.01" placeholder="Amount (Rs.)" class="bg-slate-950 border border-slate-700 rounded-xl p-3"><input id="expense-reason" type="text" placeholder="Reason for expense" class="bg-slate-950 border border-slate-700 rounded-xl p-3 sm:col-span-2"><button onclick="addExpense()" class="bg-rose-600 text-white rounded-xl p-3 font-bold">Add Expense</button></div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead><tr><th class="p-2">TX ID</th><th class="p-2">Date</th><th class="p-2">Reason</th><th class="p-2">Amount</th></tr></thead><tbody id="expenses-table-body"></tbody></table></div></div></section>
+        </main>
+    </div>
+
+    <!-- AUTHENTICATION MODAL (SIGNUP & LOGIN FOR SHOP OWNERS) -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-cyber-card border border-cyber-neonCyan/40 w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-5 box-glow-cyan">
+            
+            <div class="text-center">
+                <div class="inline-flex p-3 rounded-full bg-cyber-neonCyan/10 border border-cyber-neonCyan text-cyber-neonCyan mb-2">
+                    <i class="fa-solid fa-shop text-2xl"></i>
+                </div>
+                <h2 id="auth-title" class="text-2xl font-extrabold text-slate-100">STORE OWNER LOGIN</h2>
+                <p id="auth-subtitle" class="text-xs text-slate-400 font-mono mt-1">Cyber POS Karyana Terminal Access</p>
+            </div>
+
+            <!-- Login / Signup Form Switcher Tabs -->
+            <div class="flex border-b border-slate-800 font-mono text-xs">
+                <button id="auth-tab-login" onclick="switchAuthMode('LOGIN')" class="flex-1 py-2 text-center text-cyber-neonCyan border-b-2 border-cyber-neonCyan font-bold">
+                    LOGIN
+                </button>
+                <button id="auth-tab-signup" onclick="switchAuthMode('SIGNUP')" class="flex-1 py-2 text-center text-slate-500 font-bold hover:text-slate-300">
+                    SIGNUP
+                </button>
+            </div>
+
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4 text-xs font-mono">
+                <!-- Username (Both) -->
+                <div>
+                    <label class="block text-slate-400 mb-1">Username / Shop Owner ID</label>
+                    <input type="text" id="auth-username" required placeholder="e.g. malik_store" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-cyber-neonCyan">
+                </div>
+
+                <!-- Email (Signup Only) -->
+                <div id="auth-email-field" class="hidden">
+                    <label class="block text-slate-400 mb-1">Email Address</label>
+                    <input type="email" id="auth-email" placeholder="owner@store.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-cyber-neonCyan">
+                </div>
+
+                <!-- Shop Name (Signup Only) -->
+                <div id="auth-shopname-field" class="hidden">
+                    <label class="block text-slate-400 mb-1">Shop / Karyana Store Name</label>
+                    <input type="text" id="auth-shopname" placeholder="e.g. Al-Madina Karyana Store" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-cyber-neonCyan">
+                </div>
+
+                <!-- Password (Both) -->
+                <div>
+                    <label class="block text-slate-400 mb-1">Password</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 outline-none focus:border-cyber-neonCyan">
+                </div>
+
+                <!-- Password Rules Requirements Checklist (Visible during signup) -->
+                <div id="auth-password-rules" class="hidden p-3 bg-slate-950/80 rounded-xl border border-slate-800 space-y-1 text-[10px]">
+                    <p class="text-slate-400 font-bold mb-1">Strict Security Requirements:</p>
+                    <p id="rule-len" class="text-red-400">✖ At least 8 characters long</p>
+                    <p id="rule-upper" class="text-red-400">✖ At least one uppercase letter (A-Z)</p>
+                    <p id="rule-lower" class="text-red-400">✖ At least one lowercase letter (a-z)</p>
+                    <p id="rule-num" class="text-red-400">✖ At least one number digit (0-9)</p>
+                    <p id="rule-sym" class="text-red-400">✖ At least one special symbol (!@#$%^&*)</p>
+                </div>
+
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-cyber-neonCyan text-slate-950 font-extrabold rounded-xl shadow hover:brightness-110 transition text-sm">
+                    LOGIN TO TERMINAL
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / EDIT PRODUCT WITH CUSTOM RESTOCK -->
+    <div id="product-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cyber-card border border-slate-800 w-full max-w-lg p-6 rounded-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 id="product-modal-title" class="font-bold text-slate-100 text-base">Add New Product</h3>
+                <button onclick="closeProductModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form onsubmit="saveProduct(event)" class="space-y-3 font-mono text-xs">
+                <input type="hidden" id="prod-id">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Barcode / Code ID</label>
+                        <input type="text" id="prod-barcode" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Category</label>
+                        <select id="prod-category" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                            <!-- Dynamic Categories -->
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1">Product Title</label>
+                    <input type="text" id="prod-name" required placeholder="e.g. Sugar / Cheeni" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Unit Type</label>
+                        <select id="prod-unit" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                            <option value="UNIT">Unit / Pack</option>
+                            <option value="KG">Weighable (KG/Grams)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Purchasing Price</label>
+                        <input type="number" step="0.01" id="prod-cost" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Selling Price</label>
+                        <input type="number" step="0.01" id="prod-price" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Stock Level</label>
+                        <input type="number" step="0.01" id="prod-stock" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Low Stock Alert Level</label>
+                        <input type="number" id="prod-min-stock" value="5" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                    <button type="button" onclick="closeProductModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-cyber-neonGreen text-slate-950 font-bold rounded-lg hover:brightness-110">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CUSTOM AMOUNT / WEIGHT WEIGHABLE CALCULATOR FOR POS -->
+    <div id="weighable-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cyber-card border border-cyber-neonCyan/50 w-full max-w-sm p-5 rounded-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 id="weighable-title" class="font-bold text-slate-100 text-sm">Weighable Item Calculator</h3>
+                <button onclick="closeWeighableModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-3 font-mono text-xs">
+                <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-slate-300">
+                    <p id="weighable-prod-name" class="font-bold text-cyber-neonCyan">Item Name</p>
+                    <p id="weighable-rate" class="text-[11px] text-slate-400">Rate: Rs. 0 / KG</p>
+                </div>
+
+                <!-- Toggle KG / Grams or Enter Amount -->
+                <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <button id="calc-tab-weight" onclick="switchCalcMode('WEIGHT')" class="flex-1 py-1.5 text-center font-bold rounded-lg bg-cyber-neonCyan/20 text-cyber-neonCyan">
+                        BY WEIGHT
+                    </button>
+                    <button id="calc-tab-amount" onclick="switchCalcMode('AMOUNT')" class="flex-1 py-1.5 text-center font-bold rounded-lg text-slate-500 hover:text-slate-300">
+                        BY AMOUNT (Rs.)
+                    </button>
+                </div>
+
+                <!-- WEIGHT MODE -->
+                <div id="calc-weight-box" class="space-y-3">
+                    <div class="flex gap-2">
+                        <input type="number" step="0.001" id="calc-weight-val" oninput="calculateWeighable()" placeholder="Enter quantity..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 outline-none">
+                        <select id="calc-weight-unit" onchange="calculateWeighable()" class="bg-slate-950 border border-slate-700 rounded-lg px-2 text-xs text-cyber-neonCyan outline-none">
+                            <option value="KG">KG</option>
+                            <option value="GRAMS">Grams</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- AMOUNT MODE -->
+                <div id="calc-amount-box" class="space-y-3 hidden">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Enter Target Rupee Amount (Rs.):</label>
+                        <input type="number" step="1" id="calc-amount-val" oninput="calculateWeighable()" placeholder="e.g. 50" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 outline-none">
+                    </div>
+                </div>
+
+                <!-- Live Calculated Result -->
+                <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1">
+                    <div class="flex justify-between text-slate-400">
+                        <span>Calculated Weight:</span>
+                        <span id="res-calc-weight" class="text-white font-bold">0 KG</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>Calculated Total Price:</span>
+                        <span id="res-calc-price" class="text-cyber-neonGreen font-bold">Rs. 0.00</span>
+                    </div>
+                </div>
+
+                <button onclick="addWeighableToCart()" class="w-full py-2.5 bg-cyber-neonCyan text-slate-950 font-bold rounded-xl shadow hover:brightness-110">
+                    ADD TO CART
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DIGITAL RECEIPT POPUP -->
+    <div id="receipt-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white text-slate-950 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+            <div id="printable-receipt" class="receipt-paper p-6 text-xs leading-relaxed space-y-3">
+                <div class="text-center border-b border-dashed border-slate-400 pb-3">
+                    <h2 id="receipt-shop-title" class="font-bold text-base tracking-wider uppercase">MY KARYANA STORE</h2>
+                    <p id="receipt-shop-phone" class="text-[10px] text-slate-600">Ph: 0300-0000000</p>
+                    <p id="receipt-tx-id" class="text-[10px] text-slate-500 font-mono mt-1">TX: TX-000000</p>
+                    <p id="receipt-date" class="text-[9px] text-slate-500 font-mono">Date: 2026-10-10 00:00</p>
+                </div>
+
+                <div class="space-y-1.5 font-mono">
+                    <div class="flex justify-between font-bold border-b border-slate-300 pb-1">
+                        <span>ITEM</span>
+                        <span>QTY/WT</span>
+                        <span>TOTAL</span>
+                    </div>
+                    <div id="receipt-items-list" class="space-y-1 divide-y divide-dashed divide-slate-200">
+                        <!-- Dynamic items -->
+                    </div>
+                </div>
+
+                <div class="border-t border-dashed border-slate-400 pt-2 font-mono space-y-1 text-xs">
+                    <div class="flex justify-between text-slate-700">
+                        <span>Payment Mode:</span>
+                        <span id="receipt-mode">CASH</span>
+                    </div>
+                    <div class="flex justify-between font-extrabold text-sm pt-1 border-t border-slate-300">
+                        <span>TOTAL AMOUNT:</span>
+                        <span id="receipt-grand-total">Rs. 0.00</span>
+                    </div>
+                </div>
+
+                <div class="text-center pt-3 border-t border-dashed border-slate-400 text-[10px] text-slate-500">
+                    <p>Thank you for shopping with us!</p>
+                    <p>Cyber Karyana Terminal</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-3 flex justify-between gap-2">
+                <button onclick="closeReceiptModal()" class="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-lg">Close</button>
+                <button onclick="window.print()" class="px-4 py-2 bg-cyber-neonCyan text-slate-950 font-bold text-xs rounded-lg hover:brightness-110">
+                    <i class="fa-solid fa-print"></i> Print Receipt
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: RESTOCK INVENTORY -->
+    <div id="restock-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cyber-card border border-slate-800 w-full max-w-sm p-5 rounded-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 class="font-bold text-slate-100 text-sm">Restock Inventory Product</h3>
+                <button onclick="closeRestockModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 font-mono text-xs">
+                <p id="restock-item-title" class="font-bold text-cyber-neonGreen">Item Title</p>
+                <div>
+                    <label class="block text-slate-400 mb-1">Restock Quantity / Weight to Add:</label>
+                    <div class="flex gap-2"><input type="number" step="0.001" id="restock-qty-input" placeholder="Quantity..." class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none"><select id="restock-qty-unit" class="bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200"><option value="AUTO">Product unit</option><option value="KG">KG</option><option value="GRAMS">Grams</option><option value="UNIT">Units</option></select></div>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Deduct Expense from Vault?</label>
+                    <select id="restock-vault-deduct" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                        <option value="YES">Yes - Deduct Total Cost from Vault</option>
+                        <option value="NO">No - Stock Entry Only</option>
+                    </select>
+                </div>
+                <button onclick="submitRestock()" class="w-full py-2.5 bg-cyber-neonGreen text-slate-950 font-bold rounded-xl shadow hover:brightness-110">
+                    CONFIRM RESTOCK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CUSTOMER KHATA -->
+    <div id="customer-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cyber-card border border-slate-800 w-full max-w-sm p-5 rounded-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 class="font-bold text-slate-100 text-sm">Add New Khata Customer</h3>
+                <button onclick="closeCustomerModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveCustomer(event)" class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1">Customer Name</label>
+                    <input type="text" id="cust-name" required placeholder="e.g. Tariq Mehmood" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Phone Number</label>
+                    <input type="text" id="cust-phone" required placeholder="e.g. 0300-1234567" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Opening Credit Balance (Rs.)</label>
+                    <input type="number" step="0.01" id="cust-opening" value="0" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-cyber-neonPink text-slate-950 font-bold rounded-xl shadow hover:brightness-110">
+                    CREATE CUSTOMER KHATA
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CATEGORY EDIT -->
+    <div id="category-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cyber-card border border-slate-800 w-full max-w-sm p-5 rounded-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 class="font-bold text-slate-100 text-sm">Add Category</h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveCategory(event)" class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1">Category Name</label>
+                    <input type="text" id="cat-name" required placeholder="e.g. Spices & Pulses" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 outline-none">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-amber-400 text-slate-950 font-bold rounded-xl shadow hover:brightness-110">
+                    SAVE CATEGORY
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        /* ==========================================================================
+           1. GLOBAL STATE INITIALIZATION & LOCALSTORAGE MANAGEMENT
+           ========================================================================== */
+        
+        const DEFAULT_CATEGORIES = ["Spices & Staples", "Beverages & Teas", "Dairy & Bakery", "Snacks & Confectionery", "Household & Soaps"];
+        
+        const DEFAULT_PRODUCTS = [
+            { id: "P101", barcode: "8901001", name: "Wheat Flour (Aata)", category: "Spices & Staples", unit: "KG", cost: 130, price: 150, stock: 100, minStock: 20 },
+            { id: "P102", barcode: "8901002", name: "Refined Sugar (Cheeni)", category: "Spices & Staples", unit: "KG", cost: 135, price: 155, stock: 80, minStock: 15 },
+            { id: "P103", barcode: "8901003", name: "Basmati Rice (Chawal)", category: "Spices & Staples", unit: "KG", cost: 280, price: 340, stock: 60, minStock: 10 },
+            { id: "P104", barcode: "8901004", name: "Tapal Danedar Tea 400g", category: "Beverages & Teas", unit: "UNIT", cost: 520, price: 590, stock: 25, minStock: 5 },
+            { id: "P105", barcode: "8901005", name: "Olpers Milk 1L Pack", category: "Dairy & Bakery", unit: "UNIT", cost: 260, price: 290, stock: 40, minStock: 8 }
+        ];
+
+        let state = {
+            currentUser: null,
+            categories: [...DEFAULT_CATEGORIES],
+            products: [...DEFAULT_PRODUCTS],
+            customers: [],
+            vaultBalance: 0.00,
+            vaultLogs: [],
+            transactions: [],
+            cart: [],
+            activePaymentMode: 'CASH',
+            selectedCustomerForKhata: null
+        };
+
+        // Temporary modal calculation state
+        let currentWeighableProduct = null;
+        let weighableCalcMode = 'WEIGHT'; // WEIGHT or AMOUNT
+        let activeRestockProductId = null;
+
+        /* ==========================================================================
+           2. AUTHENTICATION & PASSWORD VALIDATION MODULE
+           ========================================================================== */
+        
+        let authMode = 'LOGIN'; // 'LOGIN' or 'SIGNUP'
+
+        function initApp() {
+            loadFromLocalStorage();
+            checkAuth();
+            renderAllViews();
+
+            // Setup real-time password listener
+            document.getElementById('auth-password').addEventListener('input', validatePasswordLive);
+        }
+
+        function checkAuth() {
+            const savedUser = localStorage.getItem('karyana_logged_user');
+            const account = localStorage.getItem('karyana_owner_account');
+            if (savedUser && account) {
+                state.currentUser = JSON.parse(account);
+                document.getElementById('auth-modal').classList.add('hidden');
+                updateUserHeaderUI();
+            } else {
+                document.getElementById('auth-modal').classList.remove('hidden');
+            }
+        }
+
+        function switchAuthMode(mode) {
+            authMode = mode;
+            const loginTab = document.getElementById('auth-tab-login');
+            const signupTab = document.getElementById('auth-tab-signup');
+            const emailField = document.getElementById('auth-email-field');
+            const shopNameField = document.getElementById('auth-shopname-field');
+            const passRules = document.getElementById('auth-password-rules');
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            if (mode === 'LOGIN') {
+                loginTab.className = "flex-1 py-2 text-center text-cyber-neonCyan border-b-2 border-cyber-neonCyan font-bold";
+                signupTab.className = "flex-1 py-2 text-center text-slate-500 font-bold hover:text-slate-300";
+                emailField.classList.add('hidden');
+                shopNameField.classList.add('hidden');
+                passRules.classList.add('hidden');
+                submitBtn.innerText = "LOGIN TO TERMINAL";
+                document.getElementById('auth-title').innerText = "STORE OWNER LOGIN";
+            } else {
+                signupTab.className = "flex-1 py-2 text-center text-cyber-neonCyan border-b-2 border-cyber-neonCyan font-bold";
+                loginTab.className = "flex-1 py-2 text-center text-slate-500 font-bold hover:text-slate-300";
+                emailField.classList.remove('hidden');
+                shopNameField.classList.remove('hidden');
+                passRules.classList.remove('hidden');
+                submitBtn.innerText = "CREATE OWNER ACCOUNT";
+                document.getElementById('auth-title').innerText = "REGISTER SHOP OWNER";
+            }
+        }
+
+        function validatePasswordLive() {
+            if (authMode !== 'SIGNUP') return true;
+
+            const val = document.getElementById('auth-password').value;
+            const hasLen = val.length >= 8;
+            const hasUpper = /[A-Z]/.test(val);
+            const hasLower = /[a-z]/.test(val);
+            const hasNum = /[0-9]/.test(val);
+            const hasSym = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val);
+
+            updateRuleUI('rule-len', hasLen, "At least 8 characters long");
+            updateRuleUI('rule-upper', hasUpper, "At least one uppercase letter (A-Z)");
+            updateRuleUI('rule-lower', hasLower, "At least one lowercase letter (a-z)");
+            updateRuleUI('rule-num', hasNum, "At least one number digit (0-9)");
+            updateRuleUI('rule-sym', hasSym, "At least one special symbol (!@#$%^&*)");
+
+            return hasLen && hasUpper && hasLower && hasNum && hasSym;
+        }
+
+        function updateRuleUI(id, isValid, text) {
+            const el = document.getElementById(id);
+            if (isValid) {
+                el.className = "text-cyber-neonGreen font-semibold";
+                el.innerText = "✔ " + text;
+            } else {
+                el.className = "text-red-400";
+                el.innerText = "✖ " + text;
+            }
+        }
+
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('auth-username').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const accountKey = 'karyana_owner_account';
+            const existing = localStorage.getItem(accountKey);
+            if (authMode === 'SIGNUP') {
+                const email = document.getElementById('auth-email').value.trim().toLowerCase();
+                const shopName = document.getElementById('auth-shopname').value.trim();
+                if (!username || !email || !shopName) { showToast('Complete all signup fields.', 'error'); return; }
+                if (!validatePasswordLive()) { showToast('Password must include uppercase, lowercase, number, symbol and 8+ characters.', 'error'); return; }
+                if (existing) { showToast('An owner account already exists in this browser. Log in instead.', 'error'); return; }
+                const newUser = { username, email, shopName, phone: '', passwordHash: CryptoJS.SHA256(password).toString(), createdAt: new Date().toISOString() };
+                state = { currentUser: newUser, categories: [...DEFAULT_CATEGORIES], products: DEFAULT_PRODUCTS.map(p => ({...p})), customers: [], vaultBalance: 0, vaultLogs: [], transactions: [], cart: [], activePaymentMode: 'CASH', selectedCustomerForKhata: null, theme: localStorage.getItem('karyana_theme') || 'dark' };
+                localStorage.setItem(accountKey, JSON.stringify(newUser));
+                localStorage.setItem('karyana_logged_user', JSON.stringify(newUser));
+                saveToLocalStorage();
+                document.getElementById('auth-modal').classList.add('hidden'); updateUserHeaderUI(); renderAllViews(); applyTheme();
+                showToast('Shop owner account created. Vault starts at Rs. 0.00.', 'success');
+            } else {
+                if (!existing) { showToast('No account found in this browser. Please sign up first.', 'error'); switchAuthMode('SIGNUP'); return; }
+                const savedUser = JSON.parse(existing);
+                if ((username.toLowerCase() !== savedUser.username.toLowerCase() && username.toLowerCase() !== savedUser.email.toLowerCase()) || CryptoJS.SHA256(password).toString() !== savedUser.passwordHash) {
+                    showToast('Incorrect username/email or password.', 'error'); return;
+                }
+                state.currentUser = savedUser;
+                localStorage.setItem('karyana_logged_user', JSON.stringify(savedUser));
+                document.getElementById('auth-modal').classList.add('hidden'); updateUserHeaderUI(); renderAllViews(); applyTheme();
+                showToast('Logged in successfully.', 'success');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('karyana_logged_user');
+            state.currentUser = null;
+            document.getElementById('auth-modal').classList.remove('hidden');
+            showToast("Logged out from terminal.", "info");
+        }
+
+        function updateUserHeaderUI() {
+            if (!state.currentUser) return;
+            document.getElementById('nav-username').innerText = state.currentUser.username;
+            document.getElementById('nav-user-avatar').innerText = state.currentUser.username.charAt(0).toUpperCase();
+            document.getElementById('sidebar-shop-name').innerText = state.currentUser.shopName || "My Karyana Store";
+            
+            // Populate profile tab
+            document.getElementById('profile-username').value = state.currentUser.username;
+            document.getElementById('profile-email').value = state.currentUser.email || "";
+            document.getElementById('profile-shopname').value = state.currentUser.shopName || "";
+            document.getElementById('profile-phone').value = state.currentUser.phone || "";
+        }
+
+        /* ==========================================================================
+           3. UNIQUE TRANSACTION ID GENERATOR
+           ========================================================================== */
+        function generateUniqueTXID() {
+            const dateStr = new Date().toISOString().replace(/[-:T.]/g, "").slice(0, 8);
+            const randomHex = Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0');
+            let id; do { const randomHex = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 12) : (Date.now().toString(16) + Math.random().toString(16).slice(2, 10))).toUpperCase(); id = `TX-${dateStr}-${randomHex}`; } while ((state.transactions || []).some(t => t.txId === id) || (state.vaultLogs || []).some(t => t.txId === id) || (state.customers || []).some(c => (c.ledger || []).some(e => e.txId === id))); return id;
+        }
+
+        /* ==========================================================================
+           4. NAVIGATION DRAWER (3-LINES) & TAB SWITCHING
+           ========================================================================== */
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.getAttribute('data-tab') === tabId) {
+                    btn.classList.add('bg-slate-800', 'text-cyber-neonCyan');
+                } else {
+                    btn.classList.remove('bg-slate-800', 'text-cyber-neonCyan');
+                }
+            });
+
+            // Close sidebar on mobile select
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar.classList.contains('-translate-x-full')) {
+                toggleSidebar();
+            }
+
+            // Render tab-specific details
+            if (tabId === 'analytics') renderAnalytics();
+            if (tabId === 'vault') renderVaultUI();
+            if (tabId === 'transactions') renderTransactionsTable();
+        }
+
+        /* ==========================================================================
+           5. SMART POS & ADVANCED WEIGHABLE CALCULATOR
+           ========================================================================== */
+        function renderPOSCatalog() {
+            const search = document.getElementById('pos-search').value.toLowerCase();
+            const cat = document.getElementById('pos-category-filter').value;
+            const container = document.getElementById('pos-catalog-grid');
+
+            const filtered = state.products.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(search) || p.barcode.includes(search) || p.id.toLowerCase().includes(search);
+                const matchesCat = cat === 'ALL' || p.category === cat;
+                return matchesSearch && matchesCat;
+            });
+
+            container.innerHTML = filtered.map(p => `
+                <div onclick="handleProductClick('${p.id}')" class="bg-slate-900/90 border border-slate-800 hover:border-cyber-neonCyan rounded-xl p-3 cursor-pointer transition flex flex-col justify-between group hover:shadow-lg">
+                    <div>
+                        <div class="flex justify-between items-start gap-1">
+                            <span class="text-[10px] font-mono text-slate-500">${p.category}</span>
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${p.unit === 'KG' ? 'bg-purple-950 text-cyber-neonPurple border border-purple-800' : 'bg-slate-800 text-slate-300'}">${p.unit}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-100 text-xs mt-1 group-hover:text-cyber-neonCyan">${p.name}</h4>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-800/80 flex justify-between items-center font-mono">
+                        <div>
+                            <p class="text-xs font-bold text-cyber-neonGreen">Rs. ${p.price}</p>
+                            <p class="text-[9px] text-slate-500">Cost: Rs. ${p.cost}</p>
+                        </div>
+                        <span class="text-[10px] ${p.stock <= p.minStock ? 'text-red-400 font-bold animate-pulse' : 'text-slate-400'}">
+                            ${p.stock} ${p.unit}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function handleProductClick(prodId) {
+            const p = state.products.find(item => item.id === prodId);
+            if (!p) return;
+
+            if (p.unit === 'KG') {
+                // Open weighable calculator modal
+                currentWeighableProduct = p;
+                document.getElementById('weighable-prod-name').innerText = p.name;
+                document.getElementById('weighable-rate').innerText = `Selling Rate: Rs. ${p.price} / KG`;
+                document.getElementById('calc-weight-val').value = 1;
+                document.getElementById('calc-amount-val').value = p.price;
+                switchCalcMode('WEIGHT');
+                calculateWeighable();
+                document.getElementById('weighable-modal').classList.remove('hidden');
+            } else {
+                // Unit product
+                addToCart(p, 1, p.price);
+            }
+        }
+
+        function switchCalcMode(mode) {
+            weighableCalcMode = mode;
+            const wBox = document.getElementById('calc-weight-box');
+            const aBox = document.getElementById('calc-amount-box');
+            const tabW = document.getElementById('calc-tab-weight');
+            const tabA = document.getElementById('calc-tab-amount');
+
+            if (mode === 'WEIGHT') {
+                wBox.classList.remove('hidden');
+                aBox.classList.add('hidden');
+                tabW.className = "flex-1 py-1.5 text-center font-bold rounded-lg bg-cyber-neonCyan/20 text-cyber-neonCyan";
+                tabA.className = "flex-1 py-1.5 text-center font-bold rounded-lg text-slate-500 hover:text-slate-300";
+            } else {
+                aBox.classList.remove('hidden');
+                wBox.classList.add('hidden');
+                tabA.className = "flex-1 py-1.5 text-center font-bold rounded-lg bg-cyber-neonCyan/20 text-cyber-neonCyan";
+                tabW.className = "flex-1 py-1.5 text-center font-bold rounded-lg text-slate-500 hover:text-slate-300";
+            }
+            calculateWeighable();
+        }
+
+        function calculateWeighable() {
+            if (!currentWeighableProduct) return;
+            const ratePerKg = currentWeighableProduct.price;
+
+            let finalQtyInKg = 0;
+            let finalPrice = 0;
+
+            if (weighableCalcMode === 'WEIGHT') {
+                const val = parseFloat(document.getElementById('calc-weight-val').value) || 0;
+                const unit = document.getElementById('calc-weight-unit').value;
+                finalQtyInKg = unit === 'GRAMS' ? val / 1000 : val;
+                finalPrice = finalQtyInKg * ratePerKg;
+            } else {
+                const targetAmount = parseFloat(document.getElementById('calc-amount-val').value) || 0;
+                finalPrice = targetAmount;
+                finalQtyInKg = ratePerKg > 0 ? targetAmount / ratePerKg : 0;
+            }
+
+            document.getElementById('res-calc-weight').innerText = `${finalQtyInKg.toFixed(3)} KG (${(finalQtyInKg * 1000).toFixed(0)} Grams)`;
+            document.getElementById('res-calc-price').innerText = `Rs. ${finalPrice.toFixed(2)}`;
+        }
+
+        function addWeighableToCart() {
+            if (!currentWeighableProduct) return;
+            const ratePerKg = currentWeighableProduct.price;
+            let finalQtyInKg = 0;
+
+            if (weighableCalcMode === 'WEIGHT') {
+                const val = parseFloat(document.getElementById('calc-weight-val').value) || 0;
+                const unit = document.getElementById('calc-weight-unit').value;
+                finalQtyInKg = unit === 'GRAMS' ? val / 1000 : val;
+            } else {
+                const targetAmount = parseFloat(document.getElementById('calc-amount-val').value) || 0;
+                finalQtyInKg = ratePerKg > 0 ? targetAmount / ratePerKg : 0;
+            }
+
+            if (finalQtyInKg <= 0) {
+                showToast("Please enter a valid weight or amount!", "error");
+                return;
+            }
+
+            addToCart(currentWeighableProduct, finalQtyInKg, ratePerKg * finalQtyInKg);
+            closeWeighableModal();
+        }
+
+        function closeWeighableModal() {
+            document.getElementById('weighable-modal').classList.add('hidden');
+        }
+
+        function addToCart(product, qty, customTotal) {
+            const existing = state.cart.find(item => item.product.id === product.id);
+            if (existing) {
+                existing.qty += qty;
+                existing.total += customTotal || (qty * product.price);
+            } else {
+                state.cart.push({
+                    product,
+                    qty,
+                    total: customTotal || (qty * product.price)
+                });
+            }
+            renderCart();
+            showToast(`Added ${product.name} to cart.`, "info");
+        }
+
+        function removeFromCart(index) {
+            state.cart.splice(index, 1);
+            renderCart();
+        }
+
+        function clearCart() {
+            state.cart = [];
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-items-container');
+            if (state.cart.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-500 font-mono text-xs py-8">Cart is empty. Select products from catalog.</p>`;
+                document.getElementById('cart-subtotal').innerText = "Rs. 0.00";
+                document.getElementById('cart-grand-total').innerText = "Rs. 0.00";
+                return;
+            }
+
+            let subtotal = 0;
+            container.innerHTML = state.cart.map((item, idx) => {
+                subtotal += item.total;
+                return `
+                    <div class="py-2.5 flex justify-between items-center text-xs font-mono">
+                        <div>
+                            <p class="font-bold text-slate-200">${item.product.name}</p>
+                            <p class="text-[10px] text-slate-400">
+                                ${item.qty.toFixed(item.product.unit === 'KG' ? 3 : 0)} ${item.product.unit} @ Rs. ${item.product.price}/${item.product.unit}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-cyber-neonGreen">Rs. ${item.total.toFixed(2)}</span>
+                            <button onclick="removeFromCart(${idx})" class="text-slate-500 hover:text-red-400">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('cart-subtotal').innerText = `Rs. ${subtotal.toFixed(2)}`;
+            document.getElementById('cart-grand-total').innerText = `Rs. ${subtotal.toFixed(2)}`;
+        }
+
+        function setPaymentMode(mode) {
+            state.activePaymentMode = mode;
+            const cashBtn = document.getElementById('pay-mode-cash');
+            const khataBtn = document.getElementById('pay-mode-khata');
+            const selectBox = document.getElementById('khata-customer-select-box');
+
+            if (mode === 'CASH') {
+                cashBtn.className = "pay-mode-btn py-2 text-xs font-semibold rounded-lg border border-cyber-neonGreen bg-cyber-neonGreen/10 text-cyber-neonGreen flex items-center justify-center gap-2";
+                khataBtn.className = "pay-mode-btn py-2 text-xs font-semibold rounded-lg border border-slate-700 bg-slate-900 text-slate-400 flex items-center justify-center gap-2";
+                selectBox.classList.add('hidden');
+            } else {
+                khataBtn.className = "pay-mode-btn py-2 text-xs font-semibold rounded-lg border border-cyber-neonPink bg-cyber-neonPink/10 text-cyber-neonPink flex items-center justify-center gap-2";
+                cashBtn.className = "pay-mode-btn py-2 text-xs font-semibold rounded-lg border border-slate-700 bg-slate-900 text-slate-400 flex items-center justify-center gap-2";
+                selectBox.classList.remove('hidden');
+                populateKhataDropdown();
+            }
+        }
+
+        function populateKhataDropdown() {
+            const dropdown = document.getElementById('cart-customer-select');
+            if (state.customers.length === 0) {
+                dropdown.innerHTML = `<option value="">-- No Customers. Add in Khata Tab --</option>`;
+                return;
+            }
+            dropdown.innerHTML = state.customers.map(c => `
+                <option value="${c.id}">${c.name} (${c.phone}) - Bal: Rs. ${c.balance.toFixed(2)}</option>
+            `).join('');
+        }
+
+        /* ==========================================================================
+           6. SALE CHECKOUT & TX RECORDING
+           ========================================================================== */
+        function checkoutSale() {
+            if (state.cart.length === 0) {
+                showToast("Cart is empty!", "error");
+                return;
+            }
+
+            let customer = null;
+            if (state.activePaymentMode === 'KHATA') {
+                const custId = document.getElementById('cart-customer-select').value;
+                customer = state.customers.find(c => c.id === custId);
+                if (!customer) {
+                    showToast("Please select a Khata Customer!", "error");
+                    return;
+                }
+            }
+
+            const txId = generateUniqueTXID();
+            const now = new Date().toLocaleString();
+
+            let totalSaleAmount = 0;
+            let totalCostAmount = 0;
+
+            const txItems = state.cart.map(item => {
+                totalSaleAmount += item.total;
+                totalCostAmount += item.qty * item.product.cost;
+
+                // Deduct Inventory Stock
+                const prod = state.products.find(p => p.id === item.product.id);
+                if (prod) {
+                    prod.stock = Math.max(0, prod.stock - item.qty);
+                }
+
+                return {
+                    name: item.product.name,
+                    unit: item.product.unit,
+                    qty: item.qty,
+                    price: item.product.price,
+                    total: item.total
+                };
+            });
+
+            const profit = totalSaleAmount - totalCostAmount;
+
+            const transaction = {
+                txId,
+                timestamp: now,
+                mode: state.activePaymentMode,
+                customerName: customer ? customer.name : "Walk-in Cash Customer",
+                items: txItems,
+                grandTotal: totalSaleAmount,
+                totalCost: totalCostAmount,
+                profit: profit
+            };
+
+            state.transactions.unshift(transaction);
+
+            if (state.activePaymentMode === 'CASH') {
+                // Real-time addition to Main Vault Balance
+                state.vaultBalance += totalSaleAmount;
+                state.vaultLogs.unshift({
+                    txId,
+                    type: "SALE_REVENUE",
+                    desc: "POS Sale Cash Collection",
+                    amount: totalSaleAmount
+                });
+            } else if (state.activePaymentMode === 'KHATA' && customer) {
+                // Add to customer khata ledger balance
+                customer.balance += totalSaleAmount;
+                customer.ledger.unshift({
+                    txId,
+                    date: now,
+                    desc: "POS Sale Purchase on Credit",
+                    type: "DEBIT",
+                    amount: totalSaleAmount
+                });
+            }
+
+            saveToLocalStorage();
+            renderAllViews();
+            showReceiptModal(transaction);
+
+            // Reset Cart
+            state.cart = [];
+            renderCart();
+            showToast(`Sale completed successfully! TX ID: ${txId}`, "success");
+        }
+
+        /* ==========================================================================
+           7. CUSTOMER KHATA (CREDIT LEDGER) MODULE
+           ========================================================================== */
+        function renderKhataCustomers() {
+            const search = document.getElementById('khata-search').value.toLowerCase();
+            const container = document.getElementById('khata-customers-list');
+
+            const filtered = state.customers.filter(c => c.name.toLowerCase().includes(search) || c.phone.includes(search));
+
+            container.innerHTML = filtered.map(c => `
+                <div onclick="selectCustomerLedger('${c.id}')" class="p-3 bg-slate-900 border border-slate-800 hover:border-cyber-neonPink rounded-xl cursor-pointer transition flex justify-between items-center">
+                    <div>
+                        <p class="font-bold text-slate-200 text-xs">${c.name}</p>
+                        <p class="text-[10px] text-slate-500 font-mono">${c.phone}</p>
+                    </div>
+                    <div class="text-right font-mono">
+                        <span class="text-xs font-bold ${c.balance > 0 ? 'text-cyber-neonPink' : 'text-slate-400'}">
+                            Rs. ${c.balance.toFixed(2)}
+                        </span>
+                        <p class="text-[9px] text-slate-500">Balance</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectCustomerLedger(custId) {
+            const customer = state.customers.find(c => c.id === custId);
+            if (!customer) return;
+
+            state.selectedCustomerForKhata = customer;
+            const container = document.getElementById('khata-ledger-view');
+
+            container.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 gap-3">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-100">${customer.name}</h2>
+                            <p class="text-xs text-slate-400 font-mono">Phone: ${customer.phone}</p>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-right font-mono">
+                            <span class="text-xs text-slate-400">Total Outstanding Credit:</span>
+                            <h3 class="text-2xl font-extrabold text-cyber-neonPink">Rs. ${customer.balance.toFixed(2)}</h3>
+                        </div>
+                    </div>
+
+                    <!-- Payment Repayment Box -->
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row gap-2">
+                        <input type="number" id="khata-pay-amount" placeholder="Payment Amount (Rs.)..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 font-mono outline-none">
+                        <button onclick="receiveKhataPayment('${customer.id}')" class="px-4 py-2 bg-cyber-neonGreen text-slate-950 font-bold text-xs rounded-lg font-mono hover:brightness-110">
+                            + RECEIVE PAYMENT & ADD TO VAULT
+                        </button>
+                    </div>
+
+                    <!-- Ledger Entries Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left font-mono text-xs">
+                            <thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                                <tr>
+                                    <th class="p-2.5">Date & Time</th>
+                                    <th class="p-2.5">TX ID</th>
+                                    <th class="p-2.5">Description</th>
+                                    <th class="p-2.5">Type</th>
+                                    <th class="p-2.5 text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/60">
+                                ${customer.ledger.map(entry => `
+                                    <tr>
+                                        <td class="p-2.5 text-slate-400">${entry.date}</td>
+                                        <td class="p-2.5 text-cyber-neonCyan">${entry.txId}</td>
+                                        <td class="p-2.5 text-slate-200">${entry.desc}</td>
+                                        <td class="p-2.5">
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] ${entry.type === 'DEBIT' ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-green-950 text-green-400 border border-green-800'}">
+                                                ${entry.type}
+                                            </span>
+                                        </td>
+                                        <td class="p-2.5 text-right font-bold ${entry.type === 'DEBIT' ? 'text-cyber-neonPink' : 'text-cyber-neonGreen'}">
+                                            Rs. ${entry.amount.toFixed(2)}
+                                            <button onclick="viewLedgerReceipt('${customer.id}','${entry.txId}')" class="ml-2 px-2 py-1 bg-slate-800 text-cyber-neonCyan border border-slate-700 rounded">Receipt</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function viewLedgerReceipt(custId, txId) {
+            const customer = state.customers.find(c => c.id === custId);
+            if (!customer) return;
+            const sale = state.transactions.find(t => t.txId === txId);
+            if (sale) { showReceiptModal(sale); return; }
+            const entry = (customer.ledger || []).find(e => e.txId === txId);
+            if (!entry) { showToast('Transaction details not found.', 'error'); return; }
+            showReceiptModal({ txId: entry.txId, timestamp: entry.date, mode: 'KHATA ' + entry.type, grandTotal: entry.amount, items: [{ name: entry.desc + ' — ' + customer.name, qty: 1, unit: 'record', total: entry.amount }] });
+        }
+
+        function receiveKhataPayment(custId) {
+            const customer = state.customers.find(c => c.id === custId);
+            const amtInput = document.getElementById('khata-pay-amount');
+            const amt = parseFloat(amtInput.value) || 0;
+
+            if (amt <= 0) {
+                showToast("Enter a valid payment amount!", "error");
+                return;
+            }
+
+            const txId = generateUniqueTXID();
+            const now = new Date().toLocaleString();
+
+            if (amt > customer.balance) { showToast('Payment exceeds the customer outstanding balance.', 'error'); return; }
+            customer.balance = customer.balance - amt;
+            customer.ledger.unshift({
+                txId,
+                date: now,
+                desc: "Credit Payment Received",
+                type: "CREDIT",
+                amount: amt
+            });
+
+            // Real-time addition to Vault Balance
+            state.vaultBalance += amt;
+            state.vaultLogs.unshift({
+                txId,
+                type: "KHATA_REPAYMENT",
+                desc: `Received Khata Repayment from ${customer.name}`,
+                amount: amt
+            });
+
+            saveToLocalStorage();
+            renderAllViews();
+            selectCustomerLedger(custId);
+            showToast(`Received Rs. ${amt} from ${customer.name}`, "success");
+        }
+
+        function openAddCustomerModal() {
+            document.getElementById('customer-modal').classList.remove('hidden');
+        }
+
+        function closeCustomerModal() {
+            document.getElementById('customer-modal').classList.add('hidden');
+        }
+
+        function saveCustomer(e) {
+            e.preventDefault();
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const opening = parseFloat(document.getElementById('cust-opening').value) || 0;
+
+            const newCust = {
+                id: "CUST-" + Date.now(),
+                name,
+                phone,
+                balance: opening,
+                ledger: opening > 0 ? [{
+                    txId: generateUniqueTXID(),
+                    date: new Date().toLocaleString(),
+                    desc: "Opening Balance",
+                    type: "DEBIT",
+                    amount: opening
+                }] : []
+            };
+
+            state.customers.push(newCust);
+            saveToLocalStorage();
+            renderKhataCustomers();
+            closeCustomerModal();
+            showToast("Customer added to Khata directory.", "success");
+        }
+
+        /* ==========================================================================
+           8. PRODUCTS & CATEGORY MANAGEMENT
+           ========================================================================== */
+        function renderInventoryTable() {
+            const search = document.getElementById('inventory-search').value.toLowerCase();
+            const cat = document.getElementById('inventory-cat-filter').value;
+            const body = document.getElementById('inventory-table-body');
+
+            const filtered = state.products.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(search) || p.barcode.includes(search) || p.id.toLowerCase().includes(search);
+                const matchesCat = cat === 'ALL' || p.category === cat;
+                return matchesSearch && matchesCat;
+            });
+
+            body.innerHTML = filtered.map(p => {
+                const margin = p.price - p.cost;
+                return `
+                    <tr class="hover:bg-slate-900/50">
+                        <td class="p-3 font-bold text-slate-200">
+                            ${p.name}
+                            <p class="text-[9px] text-slate-500">${p.barcode} | ID: ${p.id}</p>
+                        </td>
+                        <td class="p-3 text-slate-400">${p.category}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">${p.unit}</span></td>
+                        <td class="p-3 text-slate-300">Rs. ${p.cost}</td>
+                        <td class="p-3 text-cyber-neonGreen font-bold">Rs. ${p.price}</td>
+                        <td class="p-3 text-amber-400">Rs. ${margin.toFixed(2)}</td>
+                        <td class="p-3">
+                            <span class="${p.stock <= p.minStock ? 'text-red-400 font-bold' : 'text-slate-300'}">
+                                ${p.stock} ${p.unit}
+                            </span>
+                        </td>
+                        <td class="p-3 text-right space-x-1">
+                            <button onclick="openRestockModal('${p.id}')" title="Restock" class="p-1.5 bg-emerald-950 text-cyber-neonGreen border border-emerald-800 rounded-lg hover:bg-emerald-900">
+                                <i class="fa-solid fa-boxes-packing"></i>
+                            </button>
+                            <button onclick="editProduct('${p.id}')" title="Edit Product" class="p-1.5 bg-slate-800 text-slate-200 border border-slate-700 rounded-lg hover:border-cyber-neonCyan">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteProduct('${p.id}')" title="Delete" class="p-1.5 bg-red-950 text-red-400 border border-red-900 rounded-lg hover:bg-red-900">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openProductModal(prod = null) {
+            populateCategoryDropdowns();
+            const modal = document.getElementById('product-modal');
+            const title = document.getElementById('product-modal-title');
+
+            if (prod) {
+                title.innerText = "Edit Product Details";
+                document.getElementById('prod-id').value = prod.id;
+                document.getElementById('prod-barcode').value = prod.barcode;
+                document.getElementById('prod-category').value = prod.category;
+                document.getElementById('prod-name').value = prod.name;
+                document.getElementById('prod-unit').value = prod.unit;
+                document.getElementById('prod-cost').value = prod.cost;
+                document.getElementById('prod-price').value = prod.price;
+                document.getElementById('prod-stock').value = prod.stock;
+                document.getElementById('prod-min-stock').value = prod.minStock;
+            } else {
+                title.innerText = "Add New Product";
+                document.getElementById('prod-id').value = "";
+                document.getElementById('prod-barcode').value = "890" + Math.floor(Math.random() * 89999);
+                document.getElementById('prod-name').value = "";
+                document.getElementById('prod-cost').value = "";
+                document.getElementById('prod-price').value = "";
+                document.getElementById('prod-stock').value = "10";
+                document.getElementById('prod-min-stock').value = "5";
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function editProduct(prodId) {
+            const p = state.products.find(item => item.id === prodId);
+            if (p) openProductModal(p);
+        }
+
+        function closeProductModal() {
+            document.getElementById('product-modal').classList.add('hidden');
+        }
+
+        function saveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value || ("P" + Date.now().toString().slice(-4));
+            const barcode = document.getElementById('prod-barcode').value.trim();
+            const category = document.getElementById('prod-category').value;
+            const name = document.getElementById('prod-name').value.trim();
+            const unit = document.getElementById('prod-unit').value;
+            const cost = parseFloat(document.getElementById('prod-cost').value) || 0;
+            const price = parseFloat(document.getElementById('prod-price').value) || 0;
+            const stock = parseFloat(document.getElementById('prod-stock').value) || 0;
+            const minStock = parseFloat(document.getElementById('prod-min-stock').value) || 5;
+
+            const existingIdx = state.products.findIndex(p => p.id === id);
+            const newProd = { id, barcode, category, name, unit, cost, price, stock, minStock };
+
+            if (existingIdx >= 0) {
+                state.products[existingIdx] = newProd;
+                showToast("Product updated.", "success");
+            } else {
+                state.products.push(newProd);
+                showToast("New product created.", "success");
+            }
+
+            saveToLocalStorage();
+            renderAllViews();
+            closeProductModal();
+        }
+
+        function deleteProduct(prodId) {
+            if (confirm("Are you sure you want to delete this product?")) {
+                state.products = state.products.filter(p => p.id !== prodId);
+                saveToLocalStorage();
+                renderAllViews();
+                showToast("Product deleted.", "info");
+            }
+        }
+
+        /* RESTOCK SYSTEM */
+        function openRestockModal(prodId) {
+            const p = state.products.find(item => item.id === prodId);
+            if (!p) return;
+            activeRestockProductId = prodId;
+            document.getElementById('restock-item-title').innerText = `${p.name} (Current Stock: ${p.stock} ${p.unit})`;
+            document.getElementById('restock-qty-input').value = "";
+            document.getElementById('restock-qty-unit').value = 'AUTO';
+            document.getElementById('restock-modal').classList.remove('hidden');
+        }
+
+        function closeRestockModal() {
+            document.getElementById('restock-modal').classList.add('hidden');
+        }
+
+        function submitRestock() {
+            const p = state.products.find(item => item.id === activeRestockProductId);
+            if (!p) return;
+
+            let qtyToAdd = parseFloat(document.getElementById('restock-qty-input').value) || 0;
+            const chosenUnit = document.getElementById('restock-qty-unit').value;
+            if (p.unit === 'KG' && chosenUnit === 'GRAMS') qtyToAdd /= 1000;
+            if (p.unit === 'UNIT' && chosenUnit !== 'AUTO' && chosenUnit !== 'UNIT') { showToast('Unit products must be restocked in units.', 'error'); return; }
+            const deductVault = document.getElementById('restock-vault-deduct').value;
+
+            if (qtyToAdd <= 0) {
+                showToast("Enter a valid restock quantity!", "error");
+                return;
+            }
+
+            p.stock += qtyToAdd;
+
+            if (deductVault === 'YES') {
+                const totalCost = qtyToAdd * p.cost;
+                if (totalCost > state.vaultBalance && deductVault === 'YES') { p.stock -= qtyToAdd; showToast('Insufficient vault balance. Choose stock entry only or add cash first.', 'error'); return; }
+                state.vaultBalance -= totalCost;
+                state.vaultLogs.unshift({
+                    txId: generateUniqueTXID(),
+                    type: "RESTOCK_EXPENSE",
+                    desc: `Inventory Restock: ${p.name} (+${qtyToAdd} ${p.unit})`,
+                    amount: -totalCost
+                });
+            }
+
+            saveToLocalStorage();
+            renderAllViews();
+            closeRestockModal();
+            showToast(`Restocked ${p.name} (+${qtyToAdd} ${p.unit})`, "success");
+        }
+
+        /* CATEGORIES MANAGEMENT */
+        function renderCategoriesGrid() {
+            const grid = document.getElementById('categories-grid');
+            grid.innerHTML = state.categories.map(cat => {
+                const count = state.products.filter(p => p.category === cat).length;
+                return `
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-slate-200 text-sm">${cat}</h4>
+                            <p class="text-xs text-slate-500 font-mono">${count} Products Linked</p>
+                        </div>
+                        <button onclick="deleteCategory('${cat}')" class="text-slate-500 hover:text-red-400 p-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openCategoryModal() {
+            document.getElementById('category-modal').classList.remove('hidden');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('category-modal').classList.add('hidden');
+        }
+
+        function saveCategory(e) {
+            e.preventDefault();
+            const catName = document.getElementById('cat-name').value.trim();
+            if (catName && !state.categories.includes(catName)) {
+                state.categories.push(catName);
+                saveToLocalStorage();
+                renderAllViews();
+                closeCategoryModal();
+                showToast("Category created.", "success");
+            }
+        }
+
+        function deleteCategory(catName) {
+            state.categories = state.categories.filter(c => c !== catName);
+            saveToLocalStorage();
+            renderAllViews();
+            showToast("Category removed.", "info");
+        }
+
+        /* ==========================================================================
+           9. MAIN VAULT BALANCE SYSTEM
+           ========================================================================== */
+        function renderVaultUI() {
+            document.getElementById('nav-vault-balance').innerText = `Rs. ${state.vaultBalance.toFixed(2)}`;
+            document.getElementById('vault-display-balance').innerText = `Rs. ${state.vaultBalance.toFixed(2)}`;
+
+            const tbody = document.getElementById('vault-logs-body');
+            tbody.innerHTML = state.vaultLogs.map(log => `
+                <tr class="hover:bg-slate-900/50">
+                    <td class="p-2.5 text-cyber-neonCyan">${log.txId}</td>
+                    <td class="p-2.5 text-slate-400">${log.type}</td>
+                    <td class="p-2.5 text-slate-200">${log.desc}</td>
+                    <td class="p-2.5 text-right font-bold ${log.amount >= 0 ? 'text-cyber-neonGreen' : 'text-cyber-neonPink'}">
+                        ${log.amount >= 0 ? '+' : ''}Rs. ${Math.abs(log.amount).toFixed(2)}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function adjustVault(action) {
+            const amt = parseFloat(document.getElementById('vault-input-amount').value) || 0;
+            const reason = document.getElementById('vault-input-reason').value.trim() || "Manual Vault Adjustment";
+
+            if (amt <= 0) {
+                showToast("Enter a valid adjustment amount!", "error");
+                return;
+            }
+
+            const txId = generateUniqueTXID();
+
+            if (action === 'DEPOSIT') {
+                state.vaultBalance += amt;
+                state.vaultLogs.unshift({ txId, type: "MANUAL_DEPOSIT", desc: reason, amount: amt });
+            } else {
+                if (amt > state.vaultBalance) { showToast('Insufficient vault balance for this withdrawal.', 'error'); return; }
+                state.vaultBalance -= amt;
+                state.vaultLogs.unshift({ txId, type: "MANUAL_WITHDRAWAL", desc: reason, amount: -amt });
+            }
+
+            document.getElementById('vault-input-amount').value = "";
+            document.getElementById('vault-input-reason').value = "";
+
+            saveToLocalStorage();
+            renderVaultUI();
+            showToast("Vault balance updated.", "success");
+        }
+
+        /* ==========================================================================
+           10. TRANSACTION LOGS & DIGITAL RECEIPTS
+           ========================================================================== */
+        function renderTransactionsTable() {
+            const search = document.getElementById('tx-search').value.toLowerCase();
+            const tbody = document.getElementById('transactions-table-body');
+
+            const filtered = state.transactions.filter(t => t.txId.toLowerCase().includes(search) || t.customerName.toLowerCase().includes(search));
+
+            tbody.innerHTML = filtered.map(t => `
+                <tr class="hover:bg-slate-900/50">
+                    <td class="p-3 font-bold text-cyber-neonCyan">${t.txId}</td>
+                    <td class="p-3 text-slate-400">${t.timestamp}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] ${t.mode === 'CASH' ? 'bg-green-950 text-green-400 border border-green-800' : 'bg-pink-950 text-pink-400 border border-pink-800'}">
+                            ${t.mode}
+                        </span>
+                    </td>
+                    <td class="p-3 font-bold text-slate-200">Rs. ${t.grandTotal.toFixed(2)}</td>
+                    <td class="p-3 text-cyber-neonGreen">Rs. ${t.profit.toFixed(2)}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="viewTransactionReceipt('${t.txId}')" class="px-2.5 py-1 bg-slate-800 text-cyber-neonCyan border border-slate-700 hover:border-cyber-neonCyan rounded-lg">
+                            <i class="fa-solid fa-receipt"></i> Receipt
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewTransactionReceipt(txId) {
+            const tx = state.transactions.find(t => t.txId === txId);
+            if (tx) showReceiptModal(tx);
+        }
+
+        function showReceiptModal(tx) {
+            document.getElementById('receipt-shop-title').innerText = state.currentUser ? state.currentUser.shopName : "MY KARYANA STORE";
+            document.getElementById('receipt-shop-phone').innerText = `Ph: ${state.currentUser ? state.currentUser.phone : "0300-0000000"}`;
+            document.getElementById('receipt-tx-id').innerText = `TX: ${tx.txId}`;
+            document.getElementById('receipt-date').innerText = `Date: ${tx.timestamp}`;
+            document.getElementById('receipt-mode').innerText = tx.mode;
+            document.getElementById('receipt-grand-total').innerText = `Rs. ${tx.grandTotal.toFixed(2)}`;
+
+            const list = document.getElementById('receipt-items-list');
+            list.innerHTML = tx.items.map(i => `
+                <div class="flex justify-between">
+                    <span>${i.name}</span>
+                    <span>${i.qty} ${i.unit}</span>
+                    <span>Rs. ${i.total.toFixed(2)}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('receipt-modal').classList.remove('hidden');
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-modal').classList.add('hidden');
+        }
+
+        /* ==========================================================================
+           11. ANALYTICS ENGINE & CHARTS
+           ========================================================================== */
+        let categoryChart = null;
+        let paymentsChart = null;
+
+        function renderAnalytics() {
+            let totalRevenue = 0;
+            let totalProfit = 0;
+            state.transactions.forEach(t => {
+                totalRevenue += t.grandTotal;
+                totalProfit += t.profit;
+            });
+
+            let totalKhataOut = state.customers.reduce((acc, c) => acc + c.balance, 0);
+
+            document.getElementById('analytics-gross-revenue').innerText = `Rs. ${totalRevenue.toFixed(2)}`;
+            document.getElementById('analytics-net-profit').innerText = `Rs. ${totalProfit.toFixed(2)}`;
+            document.getElementById('analytics-khata-outstanding').innerText = `Rs. ${totalKhataOut.toFixed(2)}`;
+            document.getElementById('analytics-sales-count').innerText = `${state.transactions.length} Sales`;
+
+            // Category breakdown data
+            const catMap = {};
+            state.transactions.forEach(t => {
+                t.items.forEach(i => {
+                    const p = state.products.find(prod => prod.name === i.name);
+                    const category = p ? p.category : "General";
+                    catMap[category] = (catMap[category] || 0) + i.total;
+                });
+            });
+
+            const catLabels = Object.keys(catMap);
+            const catValues = Object.values(catMap);
+
+            if (categoryChart) categoryChart.destroy();
+            const ctxCat = document.getElementById('chart-category').getContext('2d');
+            categoryChart = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels.length ? catLabels : ["No Sales Yet"],
+                    datasets: [{
+                        data: catValues.length ? catValues : [1],
+                        backgroundColor: ['#00f0ff', '#a855f7', '#00ff66', '#ff0055', '#ffea00']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
+            });
+
+            // Payment mode share
+            let cashCount = state.transactions.filter(t => t.mode === 'CASH').length;
+            let khataCount = state.transactions.filter(t => t.mode === 'KHATA').length;
+
+            if (paymentsChart) paymentsChart.destroy();
+            const ctxPay = document.getElementById('chart-payments').getContext('2d');
+            paymentsChart = new Chart(ctxPay, {
+                type: 'pie',
+                data: {
+                    labels: ['Vault Cash', 'Customer Khata'],
+                    datasets: [{
+                        data: [cashCount, khataCount],
+                        backgroundColor: ['#00ff66', '#ff0055']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
+            });
+        }
+
+        /* ==========================================================================
+           12. OWNER PROFILE & ENCRYPTED BACKUP (AES ENCRYPTION)
+           ========================================================================== */
+        function saveProfileChanges(e) {
+            e.preventDefault();
+            const username = document.getElementById('profile-username').value.trim();
+            const email = document.getElementById('profile-email').value.trim();
+            const shopName = document.getElementById('profile-shopname').value.trim();
+            const phone = document.getElementById('profile-phone').value.trim();
+            const newPass = document.getElementById('profile-new-password').value;
+
+            if (newPass) {
+                const hasLen = newPass.length >= 8;
+                const hasUpper = /[A-Z]/.test(newPass);
+                const hasLower = /[a-z]/.test(newPass);
+                const hasNum = /[0-9]/.test(newPass);
+                const hasSym = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPass);
+
+                if (!hasLen || !hasUpper || !hasLower || !hasNum || !hasSym) {
+                    showToast("New password must meet strict security rules!", "error");
+                    return;
+                }
+                state.currentUser.passwordHash = CryptoJS.SHA256(newPass).toString();
+            }
+
+            state.currentUser.username = username;
+            state.currentUser.email = email;
+            state.currentUser.shopName = shopName;
+            state.currentUser.phone = phone;
+
+            saveToLocalStorage();
+            localStorage.setItem('karyana_logged_user', JSON.stringify(state.currentUser));
+            localStorage.setItem('karyana_owner_account', JSON.stringify(state.currentUser));
+            updateUserHeaderUI();
+            showToast("Owner profile updated successfully.", "success");
+        }
+
+        function exportEncryptedBackup() {
+            if (!state.currentUser) {
+                showToast("Please login first!", "error");
+                return;
+            }
+
+            const secretKey = state.currentUser.passwordHash;
+            const dataToBackup = JSON.stringify(state);
+            const encrypted = CryptoJS.AES.encrypt(dataToBackup, secretKey).toString();
+
+            const backupObj = {
+                owner: state.currentUser.username,
+                timestamp: new Date().toISOString(),
+                payload: encrypted
+            };
+
+            const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `CYBER_KARYANA_BACKUP_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+
+            showToast("Encrypted backup file generated and downloaded.", "success");
+        }
+
+        function importEncryptedBackup() {
+            const input = document.getElementById('backup-file-input');
+            if (!input.files || !input.files[0]) {
+                showToast("Select a backup JSON file first!", "error");
+                return;
+            }
+
+            const file = input.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const backupObj = JSON.parse(e.target.result);
+                    const secretKey = state.currentUser ? state.currentUser.passwordHash : "";
+
+                    const bytes = CryptoJS.AES.decrypt(backupObj.payload, secretKey);
+                    const decryptedStr = bytes.toString(CryptoJS.enc.Utf8);
+
+                    if (!decryptedStr) {
+                        showToast("Decryption failed! Invalid credentials key.", "error");
+                        return;
+                    }
+
+                    const restoredState = JSON.parse(decryptedStr);
+                    if (!restoredState || !Array.isArray(restoredState.products) || !Array.isArray(restoredState.transactions) || !restoredState.currentUser || restoredState.currentUser.username !== state.currentUser.username) { showToast('Backup does not belong to this account or is invalid.', 'error'); return; }
+                    state = restoredState;
+                    saveToLocalStorage();
+                    renderAllViews();
+                    showToast("Full store backup restored successfully!", "success");
+                } catch (err) {
+                    showToast("Error processing backup file!", "error");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function toggleTheme() {
+            const next = (localStorage.getItem('karyana_theme') || 'dark') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('karyana_theme', next); state.theme = next; applyTheme(); saveToLocalStorage();
+        }
+        function applyTheme() {
+            const light = (localStorage.getItem('karyana_theme') || state.theme || 'dark') === 'light';
+            document.body.classList.toggle('light-mode', light);
+            const icon = document.getElementById('theme-icon'); if (icon) icon.className = light ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        }
+
+        /* ==========================================================================
+           13. UTILITIES, PERSISTENCE & TOAST NOTIFICATIONS
+           ========================================================================== */
+        function renderAllViews() {
+            populateCategoryDropdowns();
+            renderPOSCatalog();
+            renderCart();
+            renderKhataCustomers();
+            renderInventoryTable();
+            renderCategoriesGrid();
+            renderVaultUI();
+            renderTransactionsTable();
+        }
+
+        function populateCategoryDropdowns() {
+            const posFilter = document.getElementById('pos-category-filter');
+            const invFilter = document.getElementById('inventory-cat-filter');
+            const prodCat = document.getElementById('prod-category');
+
+            const optionsHTML = state.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            if (posFilter) posFilter.innerHTML = `<option value="ALL">All Categories</option>` + optionsHTML;
+            if (invFilter) invFilter.innerHTML = `<option value="ALL">All Categories</option>` + optionsHTML;
+            if (prodCat) prodCat.innerHTML = optionsHTML;
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('karyana_store_state', JSON.stringify(state));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('karyana_store_state');
+            if (saved) {
+                try { const loaded = JSON.parse(saved); state = { ...state, ...loaded }; state.categories ||= [...DEFAULT_CATEGORIES]; state.products ||= DEFAULT_PRODUCTS.map(p => ({...p})); state.customers ||= []; state.transactions ||= []; state.vaultLogs ||= []; state.cart ||= []; state.vaultBalance = Number(state.vaultBalance) || 0; } catch(e) { console.error('Could not load saved store data', e); }
+            }
+        }
+
+        function showToast(msg, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let colors = "bg-slate-900 border-cyber-neonCyan text-cyber-neonCyan";
+            if (type === "success") colors = "bg-slate-900 border-cyber-neonGreen text-cyber-neonGreen";
+            if (type === "error") colors = "bg-slate-900 border-cyber-neonPink text-cyber-neonPink";
+
+            toast.className = `p-3 rounded-xl border text-xs font-mono shadow-2xl transition transform translate-x-full duration-300 flex items-center gap-2 ${colors}`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${msg}`;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-x-full'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize Application
+        window.onload = function() {
+            initApp();
+        };
+    </script>
+
+<script>
+/* Local-first feature extensions */
+function toggleSidebarIfOpen(){const el=document.getElementById('sidebar');if(el&&!el.classList.contains('-translate-x-full'))toggleSidebar();}
+function handleProfilePicture(e){const f=e.target.files&&e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){showToast('Choose an image file.','error');return;}if(f.size>2*1024*1024){showToast('Please choose an image under 2 MB.','error');return;}const r=new FileReader();r.onload=()=>{state.currentUser.profilePicture=r.result;saveToLocalStorage();renderProfilePicture();};r.readAsDataURL(f);}
+function renderProfilePicture(){const img=document.getElementById('profile-picture-preview');if(!img)return;const src=state.currentUser&&state.currentUser.profilePicture;if(src){img.src=src;img.style.display='block';document.getElementById('nav-user-avatar').innerHTML='<img alt="" src="'+src+'" style="width:100%;height:100%;object-fit:cover;border-radius:999px">';}else{img.removeAttribute('src');img.style.display='none';if(state.currentUser)document.getElementById('nav-user-avatar').textContent=(state.currentUser.username||'U').charAt(0).toUpperCase();}}
+function removeProfilePicture(){if(state.currentUser)delete state.currentUser.profilePicture;const inp=document.getElementById('profile-picture-input');if(inp)inp.value='';saveToLocalStorage();localStorage.setItem('karyana_owner_account',JSON.stringify(state.currentUser));localStorage.setItem('karyana_logged_user',JSON.stringify(state.currentUser));renderProfilePicture();}
+function addExpense(){const amount=Number(document.getElementById('expense-amount').value);const reason=document.getElementById('expense-reason').value.trim();if(!(amount>0)||!reason){showToast('Enter a valid amount and expense reason.','error');return;}if(amount>state.vaultBalance){showToast('Insufficient Main Vault balance.','error');return;}state.vaultBalance-=amount;state.expenses=state.expenses||[];const item={txId:generateUniqueTXID(),date:new Date().toLocaleString(),reason,amount};state.expenses.unshift(item);state.vaultLogs.unshift({txId:item.txId,type:'EXPENSE',desc:reason,amount:-amount});document.getElementById('expense-amount').value='';document.getElementById('expense-reason').value='';saveToLocalStorage();renderExpenses();renderVaultUI();showToast('Expense recorded and deducted from vault.','success');}
+function renderExpenses(){const body=document.getElementById('expenses-table-body');if(!body)return;body.innerHTML=(state.expenses||[]).map(x=>`<tr class="border-t border-slate-800"><td class="p-2">${x.txId}</td><td class="p-2">${x.date}</td><td class="p-2">${escapeHTML(x.reason)}</td><td class="p-2 text-rose-400">Rs. ${Number(x.amount).toFixed(2)}</td></tr>`).join('')||'<tr><td class="p-3 text-slate-500" colspan="4">No expenses recorded.</td></tr>';}
+function escapeHTML(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+const _switchTabOriginal=switchTab;switchTab=function(id){_switchTabOriginal(id);if(id==='expenses')renderExpenses();};
+const _saveProfileOriginal=saveProfileChanges;saveProfileChanges=function(e){_saveProfileOriginal(e);if(state.currentUser){localStorage.setItem('karyana_owner_account',JSON.stringify(state.currentUser));localStorage.setItem('karyana_logged_user',JSON.stringify(state.currentUser));renderProfilePicture();}};
+const _updateUserHeaderOriginal=updateUserHeaderUI;updateUserHeaderUI=function(){_updateUserHeaderOriginal();renderProfilePicture();};
+const _populateCategoryOriginal=populateCategoryDropdowns;populateCategoryDropdowns=function(){_populateCategoryOriginal();const el=document.getElementById('prod-category');if(el&&!Array.from(el.options).some(o=>o.value===''))el.insertAdjacentHTML('afterbegin','<option value="">No category / Unassigned</option>');};
+const _saveProductOriginal=saveProduct;saveProduct=function(e){const cat=document.getElementById('prod-category');if(cat&&!cat.value)cat.value='';_saveProductOriginal(e);};
+const _deleteCategoryOriginal=deleteCategory;deleteCategory=function(name){if(!confirm('Remove this category? Products will be kept and marked Unassigned.'))return;state.products.forEach(p=>{if(p.category===name)p.category='';});_deleteCategoryOriginal(name);};
+const _renderAllOriginal=renderAllViews;renderAllViews=function(){_renderAllOriginal();renderExpenses();};
+const _loadOriginal=loadFromLocalStorage;loadFromLocalStorage=function(){_loadOriginal();state.expenses=state.expenses||[];};
+// Explicit logout confirmation avoids accidental session exit; data remains local.
+const _logoutOriginal=logout;logout=function(){if(confirm('Log out of this store account? Your saved local data will remain on this device.'))_logoutOriginal();};
+</script>
+
+
+<script>
+/* Additive enhancements: transaction receipt details and Khata customer maintenance. */
+(function(){
+  let editingCustomerId = null;
+  const originalOpenAddCustomerModal = window.openAddCustomerModal;
+  window.openAddCustomerModal = function(){
+    editingCustomerId = null;
+    document.getElementById('cust-name').value = '';
+    document.getElementById('cust-phone').value = '';
+    document.getElementById('cust-opening').value = '0';
+    document.querySelector('#customer-modal h3').textContent = 'Add New Khata Customer';
+    document.querySelector('#customer-modal button[type="submit"]').textContent = 'CREATE CUSTOMER KHATA';
+    document.getElementById('customer-modal').classList.remove('hidden');
+  };
+  window.editKhataCustomer = function(id, ev){
+    if(ev) ev.stopPropagation();
+    const c = state.customers.find(x => x.id === id);
+    if(!c) return;
+    editingCustomerId = id;
+    document.getElementById('cust-name').value = c.name || '';
+    document.getElementById('cust-phone').value = c.phone || '';
+    // Existing ledger balances are preserved; editing never resets historical debt.
+    document.getElementById('cust-opening').value = Number(c.balance || 0).toFixed(2);
+    document.getElementById('cust-opening').disabled = true;
+    document.querySelector('#customer-modal h3').textContent = 'Edit Khata Customer';
+    document.querySelector('#customer-modal button[type="submit"]').textContent = 'SAVE CUSTOMER CHANGES';
+    document.getElementById('customer-modal').classList.remove('hidden');
+  };
+  const closeOriginal = window.closeCustomerModal;
+  window.closeCustomerModal = function(){
+    document.getElementById('cust-opening').disabled = false;
+    editingCustomerId = null;
+    closeOriginal();
+  };
+  const originalSave = window.saveCustomer;
+  window.saveCustomer = function(e){
+    if(!editingCustomerId){
+      originalSave(e);
+      return;
+    }
+    e.preventDefault();
+    const c = state.customers.find(x => x.id === editingCustomerId);
+    if(!c) { window.closeCustomerModal(); return; }
+    const name = document.getElementById('cust-name').value.trim();
+    const phone = document.getElementById('cust-phone').value.trim();
+    if(!name || !phone){ showToast('Please enter customer name and phone.', 'error'); return; }
+    c.name = name;
+    c.phone = phone;
+    if(state.selectedCustomerForKhata && state.selectedCustomerForKhata.id === c.id) state.selectedCustomerForKhata = c;
+    saveToLocalStorage();
+    renderAllViews();
+    selectCustomerLedger(c.id);
+    window.closeCustomerModal();
+    showToast('Customer details updated. Ledger history and balance preserved.', 'success');
+  };
+  const originalRenderCustomers = window.renderKhataCustomers;
+  window.renderKhataCustomers = function(){
+    originalRenderCustomers();
+    const container = document.getElementById('khata-customers-list');
+    container.querySelectorAll('[data-customer-action]').forEach(el => el.remove());
+    container.querySelectorAll('div.p-3.bg-slate-900').forEach(card => {
+      const click = card.getAttribute('onclick') || '';
+      const match = click.match(/selectCustomerLedger\('([^']+)'\)/);
+      if(!match) return;
+      const id = match[1];
+      const actions = document.createElement('div');
+      actions.className = 'flex gap-1 ml-2 shrink-0';
+      actions.setAttribute('data-customer-action','1');
+      actions.innerHTML = `<button type="button" class="px-2 py-1 rounded bg-slate-800 text-cyan-300 border border-slate-700 text-[10px]" title="Edit customer" data-edit="${id}"><i class="fa-solid fa-pen"></i> Edit</button><button type="button" class="px-2 py-1 rounded bg-red-950 text-red-300 border border-red-900 text-[10px]" title="Remove customer" data-remove="${id}"><i class="fa-solid fa-trash"></i></button>`;
+      card.appendChild(actions);
+      actions.querySelector('[data-edit]').addEventListener('click', ev => window.editKhataCustomer(id, ev));
+      actions.querySelector('[data-remove]').addEventListener('click', ev => {
+        ev.stopPropagation();
+        const c = state.customers.find(x => x.id === id);
+        if(!c) return;
+        if(!confirm(`Remove customer "${c.name}" from Khata? This also removes their customer record and ledger history. This cannot be undone unless you have a backup.`)) return;
+        state.customers = state.customers.filter(x => x.id !== id);
+        if(state.selectedCustomerForKhata && state.selectedCustomerForKhata.id === id){
+          state.selectedCustomerForKhata = null;
+          document.getElementById('khata-ledger-view').innerHTML = '<div class="text-center text-slate-500 py-12 font-mono"><i class="fa-solid fa-address-book text-4xl mb-3 text-slate-700"></i><p>Select a customer from the directory to view complete credit ledger history and make payments.</p></div>';
+        }
+        saveToLocalStorage();
+        renderAllViews();
+        showToast('Customer removed from Khata.', 'success');
+      });
+    });
+  };
+  // Include the customer name in historical receipt details where available.
+  const oldShowReceipt = window.showReceiptModal;
+  window.showReceiptModal = function(tx){
+    oldShowReceipt(tx);
+    const paper = document.getElementById('printable-receipt');
+    let customerLine = document.getElementById('receipt-customer-name');
+    if(!customerLine){
+      customerLine = document.createElement('p');
+      customerLine.id = 'receipt-customer-name';
+      customerLine.className = 'text-[10px] text-slate-600';
+      document.getElementById('receipt-shop-phone').insertAdjacentElement('afterend', customerLine);
+    }
+    customerLine.textContent = tx.customerName ? `Customer: ${tx.customerName}` : 'Customer: Walk-in';
+    // Show transaction-level totals and line details already stored with the original sale.
+  };
+  // Make sure each transaction row retains a clear, dedicated receipt/details action.
+  const oldRenderTx = window.renderTransactionsTable;
+  window.renderTransactionsTable = function(){
+    oldRenderTx();
+    document.querySelectorAll('#transactions-table-body tr').forEach(row => {
+      const btn = row.querySelector('button');
+      if(btn){ btn.title = 'View full transaction receipt and item details'; btn.setAttribute('aria-label','View transaction receipt and details'); }
+    });
+  };
+})();
+</script>
+</body>
+</html>
